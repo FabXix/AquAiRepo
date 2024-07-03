@@ -5,4 +5,5 @@ El folder "Original" es el cual cuenta con todas las funciones, conectado con Op
 
 El folder "Simulación" es la misma página web pero los datos son simulados para que se pueda visualizar mientras no esta conectada la boya.
 
-La pagina web se puede acceder desde el siguiente link: https://fabxix.github.io/AquAI/
+La página web se puede acceder desde el siguiente link: https://fabxix.github.io/AquAI/
+Mientras el dispositivo este conectado se debe entrar al siguiente: https://fabxix.github.io/AquAIOr/

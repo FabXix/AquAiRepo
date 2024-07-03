@@ -3,7 +3,7 @@ import openai
 
 app = Flask(__name__)
 
-openai.api_key = 'YOUR_OPENAI_API_KEY'
+openai.api_key = 'NUESTRALLAVA' #No lo compartimos por seguridad
 
 @app.route('/recommendations', methods=['POST'])
 def get_recommendations():

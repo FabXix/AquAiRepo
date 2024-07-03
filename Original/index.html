@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquAI - Gestor de Calidad del Agua</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/botui/build/botui-theme-default.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.1.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <link rel="shortcut icon" href="C:\Users\croc1\OneDrive\Escritorio\PY\proyecto\aquai.png">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+   
+            var deviceConnected = false; 
+            
+            if (!deviceConnected) {
+                document.body.innerHTML = '<div class="connection-error"><h1>El dispositivo no está conectado</h1></div>';
+                document.body.style.display = 'flex';
+                document.body.style.justifyContent = 'center';
+                document.body.style.alignItems = 'center';
+                document.body.style.height = '100vh';
+                document.body.style.backgroundColor = '#e3f2fd';
+            }
+        });
+    </script>
+</head>
+<body>
+    <div id="intro" class="intro">
+        <div class="intro-content">
+            <h1>AquAI</h1>
+            <p>Gestor de Calidad del Agua</p>
+        </div>
+    </div>
+    <header>
+        <h1>AquAI - Gestor de Calidad del Agua</h1>
+    </header>
+    <main>
+        <div id="config-modal">
+            <h2>Configurar Umbrales</h2>
+            <label for="ph-average-input">Promedio pH:</label>
+            <input type="number" id="ph-average-input" value="7.0">
+            <br>
+            <label for="electronegativity-average-input">Promedio Electronegatividad:</label>
+            <input type="number" id="electronegativity-average-input" value="3.0">
+            <br>
+            <label for="temperature-average-input">Promedio Temperatura:</label>
+            <input type="number" id="temperature-average-input" value="22.5">
+            <br>
+            <button id="save-config">Guardar</button>
+            <button id="close-config">Cerrar</button>
+        </div>
+        <button class="rueda" id="config-button">⚙️</button>
+        <section id="ph-section" class="data-section">
+            <div class="section-header">
+                <h2>pH del Agua <span class="info-icon" id="ph-info">?</span></h2>
+                <button class="view-history" id="view-ph-history">Ver Datos Históricos</button>
+            </div>
+            <div class="definition" id="ph-definition">El pH es una medida de la acidez o alcalinidad de una solución.</div>
+            <div class="value" id="ph-value"></div>
+            <div class="average" id="ph-average"></div>
+            <div class="recommendations" id="ph-recommendations"></div>
+            <canvas id="ph-chart"></canvas>
+            <table class="history-table" id="ph-history-table" style="display: none;"></table>
+            <button class="export-excel" id="export-ph-excel">Exportar a Excel</button>
+        </section>
+        <section id="electronegativity-section" class="data-section">
+            <div class="section-header">
+                <h2>Electronegatividad del Agua <span class="info-icon" id="electronegativity-info">?</span></h2>
+                <button class="view-history" id="view-electronegativity-history">Ver Datos Históricos</button>
+            </div>
+            <div class="definition" id="electronegativity-definition">La electronegatividad es una medida de la tendencia de un átomo a atraer electrones.</div>
+            <div class="value" id="electronegativity-value"></div>
+            <div class="average" id="electronegativity-average"></div>
+            <div class="recommendations" id="electronegativity-recommendations"></div>
+            <canvas id="electronegativity-chart"></canvas>
+            <table class="history-table" id="electronegativity-history-table" style="display: none;"></table>
+            <button class="export-excel" id="export-electronegativity-excel">Exportar a Excel</button>
+        </section>
+        <section id="temperature-section" class="data-section">
+            <div class="section-header">
+                <h2>Temperatura del Agua <span class="info-icon" id="temperature-info">?</span></h2>
+                <button class="view-history" id="view-temperature-history">Ver Datos Históricos</button>
+            </div>
+            <div class="definition" id="temperature-definition">La temperatura del agua afecta la solubilidad del oxígeno y la tasa metabólica de los organismos acuáticos.</div>
+            <div class="value" id="temperature-value"></div>
+            <div class="average" id="temperature-average"></div>
+            <div class="recommendations" id="temperature-recommendations"></div>
+            <canvas id="temperature-chart"></canvas>
+            <table class="history-table" id="temperature-history-table" style="display: none;"></table>
+            <button class="export-excel" id="export-temperature-excel">Exportar a Excel</button>
+        </section>
+        <section id="activity-section">
+            <h2>Actividad Reciente <button id="toggle-activity">Minimizar</button></h2>
+            <div id="activity-log" class="activity-log"></div>
+        </section>
+        <h2></h2>
+        <footer>
+            <p>Colores: Verde (Normal), Naranja (Alto), Rojo (Exagerado), Gris (Bajo)</p>
+        </footer>
+        <style>
+            /* Estilos personalizados para el chatbot */
+            body {
+                font-family: Arial, sans-serif;
+            }
+            .botui-app-container {
+                position: fixed;
+                bottom: 80px;
+                right: 20px;
+                max-width: 400px;
+                width: 100%;
+                border: 1px solid #ccc;
+                padding: 20px;
+                border-radius: 10px;
+                background-color: #f9f9f9;
+                display: none; /* Inicialmente oculto */
+                z-index: 1000; /* Para asegurar que esté por encima de otros elementos */
+            }
+            #chatbot-button {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background-color: #007bff;
+                color: #fff;
+                border: none;
+                border-radius: 50%;
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+                cursor: pointer;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                z-index: 1000; /* Para asegurar que esté por encima de otros elementos */
+            }
+        </style>
+    </head>
+    <div id="botui-app" class="botui-app-container">
+        <bot-ui></bot-ui>
+    </div>
+    <button id="chatbot-button">💬</button>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/botui/build/botui.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var botui = new BotUI('botui-app');
+
+            function startChat() {
+                botui.message.add({
+                    content: '¡Hola! Soy el chatbot de AquAI. ¿En qué puedo ayudarte hoy?'
+                }).then(function() {
+                    return botui.action.button({
+                        action: [
+                            { text: 'Información sobre pH', value: 'ph' },
+                            { text: 'Información sobre electronegatividad', value: 'electronegativity' },
+                            { text: 'Información sobre temperatura', value: 'temperature' },
+                            { text: 'Otra pregunta', value: 'other' }
+                        ]
+                    });
+                }).then(function(res) {
+                    if (res.value === 'ph') {
+                        botui.message.add({
+                            content: 'El pH es una medida de la acidez o alcalinidad de una solución. ¿Necesitas más información sobre cómo gestionarlo?'
+                        }).then(function() {
+                            return botui.action.button({
+                                action: [
+                                    { text: 'Sí', value: 'yes_ph' },
+                                    { text: 'No', value: 'no' }
+                                ]
+                            });
+                        }).then(function(res) {
+                            if (res.value === 'yes_ph') {
+                                botui.message.add({
+                                    content: 'Para gestionar el pH, puedes añadir bicarbonato de sodio si es bajo, o ácido muriático si es alto.'
+                                }).then(startChat);
+                            } else {
+                                botui.message.add({
+                                    content: '¡Entendido! ¿Hay algo más en lo que pueda ayudarte?'
+                                }).then(startChat);
+                            }
+                        });
+                    } else if (res.value === 'electronegativity') {
+                        botui.message.add({
+                            content: 'La electronegatividad es una medida de la tendencia de un átomo a atraer electrones. ¿Necesitas más información sobre cómo gestionarla?'
+                        }).then(function() {
+                            return botui.action.button({
+                                action: [
+                                    { text: 'Sí', value: 'yes_en' },
+                                    { text: 'No', value: 'no' }
+                                ]
+                            });
+                        }).then(function(res) {
+                            if (res.value === 'yes_en') {
+                                botui.message.add({
+                                    content: 'Para gestionar la electronegatividad, puedes añadir bicarbonato de sodio si es baja, o usar resinas de intercambio iónico si es alta.'
+                                }).then(startChat);
+                            } else {
+                                botui.message.add({
+                                    content: '¡Entendido! ¿Hay algo más en lo que pueda ayudarte?'
+                                }).then(startChat);
+                            }
+                        });
+                    } else if (res.value === 'temperature') {
+                        botui.message.add({
+                            content: 'La temperatura del agua afecta la solubilidad del oxígeno y la tasa metabólica de los organismos acuáticos. ¿Necesitas más información sobre cómo gestionarla?'
+                        }).then(function() {
+                            return botui.action.button({
+                                action: [
+                                    { text: 'Sí', value: 'yes_temp' },
+                                    { text: 'No', value: 'no' }
+                                ]
+                            });
+                        }).then(function(res) {
+                            if (res.value === 'yes_temp') {
+                                botui.message.add({
+                                    content: 'Para gestionar la temperatura, puedes utilizar calentadores de agua si es baja, o sistemas de enfriamiento si es alta.'
+                                }).then(startChat);
+                            } else {
+                                botui.message.add({
+                                    content: '¡Entendido! ¿Hay algo más en lo que pueda ayudarte?'
+                                }).then(startChat);
+                            }
+                        });
+                    } else {
+                        botui.message.add({
+                            content: '¡Perfecto! ¿Qué otra pregunta tienes?'
+                        }).then(function() {
+                            return botui.action.text({
+                                action: {
+                                    placeholder: 'Escribe tu pregunta aquí'
+                                }
+                            });
+                        }).then(function(res) {
+                            botui.message.add({
+                                content: 'Lo siento, no tengo una respuesta para eso en este momento, pero estoy aquí para ayudarte con cualquier cosa sobre la calidad del agua.'
+                            }).then(startChat);
+                        });
+                    }
+                });
+            }
+
+            document.getElementById('chatbot-button').addEventListener('click', function() {
+                var botuiApp = document.getElementById('botui-app');
+                if (botuiApp.style.display === 'none' || botuiApp.style.display === '') {
+                    botuiApp.style.display = 'block';
+                    startChat();
+                } else {
+                    botuiApp.style.display = 'none';
+                }
+            });
+        });
+    </script>
+    <script src="scripts.js"></script>
+</body>
+</html>
